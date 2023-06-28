@@ -23,6 +23,49 @@ int ret;
 uint8_t scratch;
 uint32_t scratch32;
 
+int spi_init()
+{
+  fd = open(SPI_DEVICE, O_RDWR);
+  if(fd < 0) {
+    printf("Could not open the SPI device...\r\n");
+    exit(EXIT_FAILURE);
+  }
+
+  ret = ioctl(fd, SPI_IOC_RD_MODE, &scratch);
+  if(ret != 0) {
+    printf("Could not read SPI mode...\r\n");
+    close(fd);
+    exit(EXIT_FAILURE);
+  }
+  printf("SPI mode is %x\n", scratch);
+
+  scratch |= SPI_MODE_0;
+
+  ret = ioctl(fd, SPI_IOC_WR_MODE, &scratch);
+  if(ret != 0) {
+    printf("Could not write SPI mode...\r\n");
+    close(fd);
+    exit(EXIT_FAILURE);
+  }
+
+  ret = ioctl(fd, SPI_IOC_RD_MAX_SPEED_HZ, &scratch32);
+  if(ret != 0) {
+    printf("Could not read the SPI max speed...\r\n");
+    close(fd);
+    exit(EXIT_FAILURE);
+  }
+  printf("SPI max speed is %d\n", scratch32);
+
+  scratch32 = 2000000;
+
+  ret = ioctl(fd, SPI_IOC_WR_MAX_SPEED_HZ, &scratch32);
+  if(ret != 0) {
+    printf("Could not write the SPI max speed...\r\n");
+    close(fd);
+    exit(EXIT_FAILURE);
+  }
+}
+
 float get_avg_voltage(int channel, int num_read)
 {
   uint8_t tx_buffer[LEN_DATA];
@@ -79,50 +122,10 @@ int main(int argc, char **argv) {
     }
   }
 
-  fd = open(SPI_DEVICE, O_RDWR);
-  if(fd < 0) {
-    printf("Could not open the SPI device...\r\n");
-    exit(EXIT_FAILURE);
-  }
-
-  ret = ioctl(fd, SPI_IOC_RD_MODE, &scratch);
-  if(ret != 0) {
-    printf("Could not read SPI mode...\r\n");
-    close(fd);
-    exit(EXIT_FAILURE);
-  }
-  printf("SPI mode is %x\n", scratch);
-
-  scratch |= SPI_MODE_0;
-
-  ret = ioctl(fd, SPI_IOC_WR_MODE, &scratch);
-  if(ret != 0) {
-    printf("Could not write SPI mode...\r\n");
-    close(fd);
-    exit(EXIT_FAILURE);
-  }
-
-  ret = ioctl(fd, SPI_IOC_RD_MAX_SPEED_HZ, &scratch32);
-  if(ret != 0) {
-    printf("Could not read the SPI max speed...\r\n");
-    close(fd);
-    exit(EXIT_FAILURE);
-  }
-  printf("SPI max speed is %d\n", scratch32);
-
-  scratch32 = 2000000;
-
-  ret = ioctl(fd, SPI_IOC_WR_MAX_SPEED_HZ, &scratch32);
-  if(ret != 0) {
-    printf("Could not write the SPI max speed...\r\n");
-    close(fd);
-    exit(EXIT_FAILURE);
-  }
-
+  spi_init();
   float voltage = get_avg_voltage(channel, NUM_READS);
   printf("Current volt %f\n", voltage);
 
   close(fd);
-
   exit(EXIT_SUCCESS);
 }
